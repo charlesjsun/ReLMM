@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot name="cylinder">
+  <material name="wallmat">
+    <color rgba="0.7 0.7 0.7 1"/>
+  </material>
+
+  <link name="wall_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.00 0.00 2.00"/>
+      <geometry>
+        <cylinder length="4.00" radius="1.00"/>
+      </geometry>
+      <material name="wallmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.00 0.00 2.00"/>
+      <geometry>
+        <cylinder length="4.00" radius="1.00"/>
+      </geometry>
+    </collision>
+  </link>
+
+</robot>

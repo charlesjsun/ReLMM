@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot name="pillar">
+  <material name="pillar_mat">
+    <color rgba="0.2 0.2 0.9 1"/>
+  </material>
+
+  <link name="pillar_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0.0 2"/>
+      <geometry>
+        <box size="1 1 4"/>
+      </geometry>
+      <material name="pillar_mat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 2"/>
+      <geometry>
+        <box size="1 1 4"/>
+      </geometry>
+    </collision>
+  </link>
+  
+</robot>

@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<robot name="walls">
+  <material name="wallmat">
+    <color rgba="0.9 0.2 0.9 1"/>
+  </material>
+
+  <link name="origin">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+  </link>
+
+  <link name="xpos">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.5 0.0 0.25"/>
+      <geometry>
+        <box size="0.01 1 0.5"/>
+      </geometry>
+      <material name="wallmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.5 0.0 0.25"/>
+      <geometry>
+        <box size="0.01 1 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="xneg">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-0.5 0.0 0.25"/>
+      <geometry>
+        <box size="0.01 1 0.5"/>
+      </geometry>
+      <material name="wallmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="-0.5 0.0 0.25"/>
+      <geometry>
+        <box size="0.01 1 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="ypos">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.5 0.25"/>
+      <geometry>
+        <box size="1 0.01 0.5"/>
+      </geometry>
+      <material name="wallmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.5 0.25"/>
+      <geometry>
+        <box size="1 0.01 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="yneg">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 -0.5 0.25"/>
+      <geometry>
+        <box size="1 0.01 0.5"/>
+      </geometry>
+      <material name="wallmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 -0.5 0.25"/>
+      <geometry>
+        <box size="1 0.01 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="xpos_j" type="fixed">
+    <parent link="origin"/>
+    <child link="xpos"/>
+  </joint>
+
+  <joint name="xneg_j" type="fixed">
+    <parent link="origin"/>
+    <child link="xneg"/>
+  </joint>
+
+  <joint name="ypos_j" type="fixed">
+    <parent link="origin"/>
+    <child link="ypos"/>
+  </joint>
+
+  <joint name="yneg_j" type="fixed">
+    <parent link="origin"/>
+    <child link="yneg"/>
+  </joint>
+  
+</robot>

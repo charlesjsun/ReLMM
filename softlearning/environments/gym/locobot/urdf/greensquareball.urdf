@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<robot name="squareball">
+  <material name="blockmat">
+    <color rgba="0.1 0.7 0.1 0.5"/>
+  </material>
+
+  <link name="yaxis">
+    <contact>
+      <lateral_friction value="0.5"/>
+      <spinning_friction value=".001"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.015"/>
+      </geometry>
+      <material name="blockmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.01 0.03 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="xaxis">
+    <contact>
+      <lateral_friction value="0.5"/>
+      <spinning_friction value=".001"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.215"/>
+      </geometry>
+      <material name="blockmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.03 0.01 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  
+  <link name="zaxis">
+    <contact>
+      <lateral_friction value="0.5"/>
+      <spinning_friction value=".001"/>
+    </contact>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.01"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <sphere radius="0.015"/>
+      </geometry>
+      <material name="blockmat"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <box size="0.01 0.01 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="y_to_x" type="fixed">
+    <parent link="yaxis"/>
+    <child link="xaxis"/>
+  </joint>
+
+  <joint name="y_to_z" type="fixed">
+    <parent link="yaxis"/>
+    <child link="zaxis"/>
+  </joint>
+
+  
+</robot>

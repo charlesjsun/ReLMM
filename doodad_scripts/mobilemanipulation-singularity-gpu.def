@@ -1,0 +1,5 @@
+Bootstrap: docker
+From: charlesjsun/mobilemanipulation-singularity-gpu:latest
+
+%startscript
+    exec "$@"
