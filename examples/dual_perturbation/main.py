@@ -26,6 +26,8 @@ from softlearning.utils.times import datetimestamp
 from softlearning.utils.tensorflow import set_gpu_memory_growth
 from examples.instrument import run_example_local
 
+import traceback
+
 
 class ExperimentRunner(tune.Trainable):
     def _setup(self, variant):
@@ -257,11 +259,11 @@ class ExperimentRunner(tune.Trainable):
             )
 
         # self._save("/home/brian/realmobile/test_save")
+        self.replay_pool_restore_paths = variant['run_params']['replay_pool_paths'].split(":")
 
         if variant['run_params']['restore_path'] != "":
             self._restore(variant['run_params']['restore_path'])
 
-        # variant['run_params']['replay_pool_path'] ?
 
         self._built = True
 
@@ -269,12 +271,18 @@ class ExperimentRunner(tune.Trainable):
         if not self._built:
             self._build()
 
-        if self.train_generator is None:
-            self.train_generator = self.algorithm.train()
+        try:
+            if self.train_generator is None:
+                self.train_generator = self.algorithm.train()
 
-        diagnostics = next(self.train_generator)
+            diagnostics = next(self.train_generator)
 
-        return diagnostics
+            return diagnostics
+        except Exception as e:
+            os.mkdir("./checkpoint_error")
+            self._save("./checkpoint_error")
+            traceback.print_exc()
+            raise e
 
     @staticmethod
     def _pickle_path(checkpoint_dir):
@@ -335,18 +343,21 @@ class ExperimentRunner(tune.Trainable):
                 'checkpoint_replay_pool', False):
             return
 
-        experiment_root = os.path.dirname(current_checkpoint_dir)
+        experiment_roots = [os.path.dirname(checkpoint_dir) for checkpoint_dir in self.replay_pool_restore_paths]
         
-        print("restore replay pool from:", experiment_root)
+        print("restore replay pool from:", experiment_roots)
 
         experience_paths = [
             self._replay_pool_save_path(checkpoint_dir)
-            for checkpoint_dir in sorted(glob.iglob(
-                os.path.join(experiment_root, 'checkpoint_*')))
+            for experiment_root in experiment_roots
+                for checkpoint_dir in sorted(glob.iglob(
+                    os.path.join(experiment_root, 'checkpoint_*')))
         ]
 
         for experience_path in experience_paths:
             self.replay_pool.load_experience(experience_path)
+
+        print("    replay pool size:", self.replay_pool.size)
 
     def _save_sampler(self, checkpoint_dir):
         with open(self._sampler_save_path(checkpoint_dir), 'wb') as f:
@@ -492,7 +503,11 @@ class ExperimentRunner(tune.Trainable):
             # os.path.split(f"{save_path}/checkpoint")[0])
             # f"{save_path}/checkpoint-xxx"))
             os.path.split(os.path.join(save_path, "checkpoint"))[0]))
-        status.assert_consumed().run_restore_ops()
+        
+        try:
+            status.assert_consumed().run_restore_ops()
+        except AssertionError:
+            print("WARNING: algorithm was not correctly restored.")
 
     def _save_grasp_perturbation_algorithm(self, checkpoint_dir):
         save_path = self._grasp_perturbation_algorithm_save_path(checkpoint_dir)
@@ -625,7 +640,7 @@ class ExperimentRunner(tune.Trainable):
         self._restore_policy(checkpoint_dir)
         self._restore_algorithm(checkpoint_dir)
         
-        # self._restore_environment(checkpoint_dir)
+        self._restore_environment(checkpoint_dir)
 
         for Q, Q_target in zip(self.algorithm._Qs, self.algorithm._Q_targets):
             Q_target.set_weights(Q.get_weights())

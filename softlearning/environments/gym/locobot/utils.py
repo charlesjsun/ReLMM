@@ -43,10 +43,6 @@ URDF = {
     "wall_single": os.path.join(CURR_PATH, 'urdf/double_room/wall_single.urdf'),
     "wall_single_thin": os.path.join(CURR_PATH, 'urdf/double_room/wall_single_thin.urdf'),
     "floor_patch": os.path.join(CURR_PATH, 'urdf/double_room/floor_patch.urdf'),
-    "cylinder_grey": os.path.join(CURR_PATH, 'urdf/double_room/cylinder_grey.urdf'),
-    "cylinder_black": os.path.join(CURR_PATH, 'urdf/double_room/cylinder_black.urdf'),
-    "box_grey": os.path.join(CURR_PATH, 'urdf/double_room/box_grey.urdf'),
-    "box_dark_grey": os.path.join(CURR_PATH, 'urdf/double_room/box_dark_grey.urdf'),
 }
 
 TEXTURE = {
@@ -84,8 +80,8 @@ def is_in_circle(x, y, center_x, center_y, radius):
     return (x - center_x) ** 2 + (y - center_y) ** 2 < radius ** 2
 
 def dprint(*args, **kwargs):
-    # print(timestamp(), *args, **kwargs)
-    return
+    print(timestamp(), *args, **kwargs)
+    # return
 
 class Discretizer:
     def __init__(self, sizes, mins, maxs):
@@ -194,24 +190,19 @@ def create_train_discrete_Q_sigmoid(logits_model, optimizer, discrete_dimension)
 
 GRASP_MODEL = {
     "alpha10min_6Q_stat_stat": os.path.join(CURR_PATH, 'grasp_models/alpha10min_6Q_stat_stat'),
+    "alpha10mean_beta10std_stat_rand_color": os.path.join(CURR_PATH, 'grasp_models/alpha10mean_beta10std_stat_rand_color'),
+    "alpha10mean_beta10std_6Q_rfe": os.path.join(CURR_PATH, 'grasp_models/alpha10mean_beta10std_6Q_rfe'),
     "sock_8500": os.path.join(CURR_PATH, 'grasp_models/sock_8500'),
-    "n500": os.path.join(CURR_PATH, 'grasp_models/n500'),
-    "n1000": os.path.join(CURR_PATH, 'grasp_models/n1000'),
-    "n1250": os.path.join(CURR_PATH, 'grasp_models/n1250'),
-    "n1500": os.path.join(CURR_PATH, 'grasp_models/n1500'),
-    "n2000": os.path.join(CURR_PATH, 'grasp_models/n2000'),
-    "n4000": os.path.join(CURR_PATH, 'grasp_models/n4000'),
+    "sock_2000": os.path.join(CURR_PATH, 'grasp_models/sock_2000'),
+    "pretrain_different_objects_2150": os.path.join(CURR_PATH, 'grasp_models/pretrain_different_objects_2150'),
 }
 
 GRASP_DATA = {
     "grasp_s500_f500": os.path.join(CURR_PATH, 'grasp_data/grasp_s500_f500.npy'),
     "real_s1000_f1000": os.path.join(CURR_PATH, 'grasp_data/real_s1000_f1000.npy'),
-    "n500": os.path.join(CURR_PATH, 'grasp_data/n500.npy'),
-    "n1000": os.path.join(CURR_PATH, 'grasp_data/n1000.npy'),
-    "n1250": os.path.join(CURR_PATH, 'grasp_data/n1250.npy'),
-    "n1500": os.path.join(CURR_PATH, 'grasp_data/n1500.npy'),
-    "n2000": os.path.join(CURR_PATH, 'grasp_data/n2000.npy'),
-    "n4000": os.path.join(CURR_PATH, 'grasp_data/n4000.npy'),
+    "sock_3000": os.path.join(CURR_PATH, "grasp_data/sock_3000.npy"),
+    "sock_2000": os.path.join(CURR_PATH, "grasp_data/sock_2000.npy"), # 97 successes
+    "pretrain_different_objects_2150": os.path.join(CURR_PATH, "grasp_data/pretrain_different_objects_2150.npy"), # 97 successes
 }
 
 class ReplayBuffer:

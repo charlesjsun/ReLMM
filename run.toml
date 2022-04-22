@@ -1,0 +1,46 @@
+# This is an example TOML script to tell utils how to run your code with doodad
+
+
+# every reference to this codebase needs to be prepended with the `local_directory_mount`, so pick something short
+
+local_directory_mount = "/code"
+docker_image = "abhiguptaberk/softlearningashwin:latest"
+command = "source /code/setup.sh"
+verbose = true
+
+[hyperparams]
+domain = ["HalfCheetah"]
+task = ["v3"]
+algorithm = ["SAC"]
+
+
+[mounts]
+
+#[mounts.r3l]
+
+#local_dir = "/home/abhigupta/abhishek_sandbox/r3l/r3l"
+#mount_point = "/code/r3l"
+
+#[mounts.mjrl]
+
+#local_dir = "/home/abhigupta/abhishek_sandbox/mjrl/mjrl"
+#mount_point = "/code/mjrl"
+
+# Output Mount - where you can retrieve the results from the docker run
+# local_dir is where it will be transferred during a debug run
+# scroll down to [s3] for more info about buckets
+[mounts.output]
+
+local_dir = "/home/charles/RAIL/s3_output"
+mount_point = "/root/ray_results"
+
+
+[ec2]
+instance_type = "c4.xlarge"
+spot_price = 0.0622
+region = "us-west-1"
+
+# This is where you specify where the outputs will go in s3.
+[s3]
+bucket = "charlesbuckettwo"
+path = "outputs"

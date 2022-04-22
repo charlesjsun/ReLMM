@@ -125,3 +125,6 @@ others/others/logs/
 others/test_logs/
 
 bash_scripts/final/.nfs*
+test_logs/
+softlearning/environments/gym/locobot/grasp_models
+softlearning/environments/gym/locobot/grasp_data

@@ -211,7 +211,7 @@ def get_parser(allow_policy_list=False):
         default='')
 
     parser.add_argument(
-        '--replay-pool-path',
+        '--replay-pool-paths',
         type=str,
         default='')
     

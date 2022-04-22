@@ -1,7 +1,7 @@
 import numpy as np
 
 from .utils import *
-from .objects import StaticObject, TexturedBox, Wall, FloorPatch, ColoredBox, ColoredCylinder
+from .objects import StaticObject, TexturedBox, Wall, FloorPatch
 
 from softlearning.environments.helpers import random_point_in_circle
 import pybullet_data
@@ -24,8 +24,6 @@ def initialize_room(locobot_interface, name, room_params={}):
         return SingleRoom(locobot_interface, room_params)
     elif name == "double":
         return DoubleRoom(locobot_interface, room_params)
-    elif name == "obstacles":
-        return ObstaclesRoom(locobot_interface, room_params)
     elif name == "double_v2":
         return DoubleV2Room(locobot_interface, room_params)
     else:
@@ -130,7 +128,6 @@ class BaseTileRoom(Room):
             num_objects=50,
             object_name="greensquareball",
             robot_pos=[0, 0],
-            no_spawn_radius=0.5,
         )
         defaults.update(params)
         super().__init__(interface, defaults)
@@ -146,11 +143,6 @@ class BaseTileRoom(Room):
         self.discard_walls = []
         self.discard_floor = None
         self.generate_discard_box()
-
-        self.obstacles = []
-        self.generate_obstacles()
-
-        self.no_spawn_radius = self.params["no_spawn_radius"]
 
         # objects
         self._num_objects = self.params["num_objects"]
@@ -176,9 +168,6 @@ class BaseTileRoom(Room):
     def generate_walls(self):
         raise NotImplementedError
 
-    def generate_obstacles(self):
-        pass
-
     def generate_discard_box(self):
         self.discard_walls.append(Wall(self.interface, [10.5, 0, 0], [-1.0, 0.0], 1.0))
         self.discard_walls.append(Wall(self.interface, [9.5, 0, 0], [1.0, 0.0], 1.0))
@@ -194,18 +183,22 @@ class BaseTileRoom(Room):
     def num_objects(self):
         return self._num_objects
 
-    def reset_object(self, object_ind, robot_pos):
+    def reset_object(self, object_ind, robot_pos, max_radius=np.inf):
         for _ in range(5000):
             floor = np.random.choice(self.floors)
             x, y = floor.get_random_loc()
-            if (not is_in_circle(x, y, robot_pos[0], robot_pos[1], self.no_spawn_radius) and 
-                not self.is_point_in_obstacles(x, y)):
+            if not is_in_circle(x, y, robot_pos[0], robot_pos[1], 0.5) and is_in_circle(x, y, robot_pos[0], robot_pos[1], max_radius):
                 break
         self.interface.move_object(self.objects_id[object_ind], [x, y, 0.015])
 
     def reset(self):
         for i in range(self._num_objects):
-            self.reset_object(i, self.robot_pos)
+            for _ in range(5000):
+                floor = np.random.choice(self.floors)
+                x, y = floor.get_random_loc()
+                if not is_in_circle(x, y, self.robot_pos[0], self.robot_pos[1], 0.5):
+                    break
+            self.interface.move_object(self.objects_id[i], [x, y, 0.015])
 
     def is_object_in_bound(self, object_ind):
         object_pos, _ = self.interface.get_object(self.objects_id[object_ind])
@@ -213,16 +206,6 @@ class BaseTileRoom(Room):
             if floor.is_in_bound(object_pos[0], object_pos[1]):
                 return True
         return False
-
-    def is_point_in_obstacles(self, x, y, wiggle=0.03):
-        for obstacle in self.obstacles:
-            if obstacle.is_point_inside(x, y, wiggle=wiggle):
-                return True
-        return False 
-
-    def is_object_in_obstacle(self, object_ind):
-        object_pos, _ = self.interface.get_object(self.objects_id[object_ind])
-        return self.is_point_in_obstacles(object_pos[0], object_pos[1])
 
     def is_object_in_discard(self, object_ind):
         object_pos, _ = self.interface.get_object(self.objects_id[object_ind])
@@ -238,45 +221,30 @@ class BaseTileRoom(Room):
         y = closest_floor.pos[1] + (dy / max_norm) * 0.85
         self.interface.move_object(self.objects_id[object_ind], [x, y, 0.015])
 
-    def force_object_out_obstacle_if_not(self, object_ind):
-        object_pos, _ = self.interface.get_object(self.objects_id[object_ind])
-        for obstacle in self.obstacles:
-            if obstacle.is_point_inside(object_pos[0], object_pos[1]):
-                outside_pos = obstacle.closest_outside_pos(object_pos[0], object_pos[1])
-                self.interface.move_object(self.objects_id[object_ind], [outside_pos[0], outside_pos[1], 0.015])
-                break
-
     def force_object_in_bound_if_not(self, object_ind):
         if not self.is_object_in_discard(object_ind) and not self.is_object_in_bound(object_ind):
             self.force_object_in_bound(object_ind)
 
     def get_turn_direction_if_should_turn(self):
         x, y, yaw = self.interface.get_base_pos_and_yaw()
-        
-        normals = []
-        
+        walls = []
         for w in self.walls:
             if w.in_turn_detection_box(x, y):
-                normal = np.array([w.facing[0], w.facing[1]])
-                normals.append(normal)
+                walls.append(w) 
 
-        for o in self.obstacles:
-            if o.is_in_detection(x, y):
-                normal = o.get_normal(x, y)
-                normals.append(normal)
-        
-        if len(normals) == 0:
+        if len(walls) == 0:
             return None
 
-        mean_normal = np.mean(normals, axis=0)
-        normal = mean_normal / np.linalg.norm(mean_normal)
-
         robot_facing = np.array([np.cos(yaw), np.sin(yaw)])
-        dot_prod = robot_facing.dot(normal)
+        wall_normal_x = sum(w.facing[0] for w in walls)
+        wall_normal_y = sum(w.facing[1] for w in walls)
+        wall_normal = np.array([wall_normal_x, wall_normal_y]) / np.sqrt(wall_normal_x ** 2 + wall_normal_y ** 2)
+
+        dot_prod = robot_facing.dot(wall_normal)
         if dot_prod >= 0.0:
             return None
 
-        direction = normal[0] * (-robot_facing[1]) + normal[1] * robot_facing[0]
+        direction = wall_normal[0] * (-robot_facing[1]) + wall_normal[1] * robot_facing[0]
         if direction <= 0:
             return "right", dot_prod
         else:
@@ -292,7 +260,7 @@ class BaseTileRoom(Room):
         for _ in range(5000):
             floor = np.random.choice(self.floors)
             x, y = floor.get_random_loc()
-            if not self.is_in_turn_detection_box(x, y) and not self.is_point_in_obstacles(x, y, wiggle=0.15):
+            if not self.is_in_turn_detection_box(x, y):
                 break
         yaw = np.random.uniform(0, np.pi * 2.0)
         return np.array([x, y]), yaw
@@ -369,120 +337,58 @@ class DoubleV2Room(BaseTileRoom):
     def __init__(self, interface, params):
         defaults = dict(
             floor_texture_1="floor_wood_2",
-            floor_texture_2="floor_wood_2",
+            floor_texture_2="floor_wood_3",
         )
         defaults.update(params)
         super().__init__(interface, defaults)
 
     def generate_floors(self):
-        y_offset = -0.5
         # starting room
         floor_texture_1 = self.params["floor_texture_1"]
-        self.floors.append(FloorPatch(self.interface, [ 0.0, 0.0 + y_offset, 0.0], floor_texture_1, 1.0, neg_y_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 1.0, 0.0 + y_offset, 0.0], floor_texture_1, 1.0, neg_y_wall=True, pos_y_wall=True))
-        self.floors.append(FloorPatch(self.interface, [-1.0, 0.0 + y_offset, 0.0], floor_texture_1, 1.0, neg_y_wall=True, neg_x_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 0.0, 1.0 + y_offset, 0.0], floor_texture_1, 1.0))
-        self.floors.append(FloorPatch(self.interface, [ 1.0, 1.0 + y_offset, 0.0], floor_texture_1, 1.0, pos_y_wall=True, pos_x_wall=True))
-        self.floors.append(FloorPatch(self.interface, [-1.0, 1.0 + y_offset, 0.0], floor_texture_1, 1.0, pos_y_wall=True, neg_x_wall=True))
+        self.floors.append(FloorPatch(self.interface, [ 0.0, 0.0, 0.0], floor_texture_1, 1.0, neg_y_wall=True))
+        self.floors.append(FloorPatch(self.interface, [ 1.0, 0.0, 0.0], floor_texture_1, 1.0, neg_y_wall=True, pos_y_wall=True))
+        self.floors.append(FloorPatch(self.interface, [-1.0, 0.0, 0.0], floor_texture_1, 1.0, neg_y_wall=True, neg_x_wall=True))
+        self.floors.append(FloorPatch(self.interface, [ 0.0, 1.0, 0.0], floor_texture_1, 1.0))
+        self.floors.append(FloorPatch(self.interface, [ 1.0, 1.0, 0.0], floor_texture_1, 1.0, pos_y_wall=True, pos_x_wall=True))
+        self.floors.append(FloorPatch(self.interface, [-1.0, 1.0, 0.0], floor_texture_1, 1.0, pos_y_wall=True, neg_x_wall=True))
 
         # other room
         floor_texture_2 = self.params["floor_texture_2"]
-        self.floors.append(FloorPatch(self.interface, [ 0.0, 2.0 + y_offset, 0.0], floor_texture_2, 1.0))
-        self.floors.append(FloorPatch(self.interface, [ 1.0, 2.0 + y_offset, 0.0], floor_texture_2, 1.0, neg_y_wall=True, pos_x_wall=True))
-        self.floors.append(FloorPatch(self.interface, [-1.0, 2.0 + y_offset, 0.0], floor_texture_2, 1.0, neg_y_wall=True, neg_x_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 0.0, 3.0 + y_offset, 0.0], floor_texture_2, 1.0, pos_y_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 1.0, 3.0 + y_offset, 0.0], floor_texture_2, 1.0, pos_y_wall=True, pos_x_wall=True))
-        self.floors.append(FloorPatch(self.interface, [-1.0, 3.0 + y_offset, 0.0], floor_texture_2, 1.0, pos_y_wall=True, neg_x_wall=True))
+        self.floors.append(FloorPatch(self.interface, [ 0.0, 2.0, 0.0], floor_texture_2, 1.0))
+        self.floors.append(FloorPatch(self.interface, [ 1.0, 2.0, 0.0], floor_texture_2, 1.0, neg_y_wall=True, pos_x_wall=True))
+        self.floors.append(FloorPatch(self.interface, [-1.0, 2.0, 0.0], floor_texture_2, 1.0, neg_y_wall=True, neg_x_wall=True))
+        self.floors.append(FloorPatch(self.interface, [ 0.0, 3.0, 0.0], floor_texture_2, 1.0, pos_y_wall=True))
+        self.floors.append(FloorPatch(self.interface, [ 1.0, 3.0, 0.0], floor_texture_2, 1.0, pos_y_wall=True, pos_x_wall=True))
+        self.floors.append(FloorPatch(self.interface, [-1.0, 3.0, 0.0], floor_texture_2, 1.0, pos_y_wall=True, neg_x_wall=True))
 
     def generate_walls(self):
-        y_offset = -0.5
         # -y side room 1
-        self.walls.append(Wall(self.interface, [-1.0, -0.5 + y_offset, 0], [ 0,  1], 1.0))
-        self.walls.append(Wall(self.interface, [ 0.0, -0.5 + y_offset, 0], [ 0,  1], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.0, -0.5 + y_offset, 0], [ 0,  1], 1.0))
+        self.walls.append(Wall(self.interface, [-1.0, -0.5, 0], [ 0,  1], 1.0))
+        self.walls.append(Wall(self.interface, [ 0.0, -0.5, 0], [ 0,  1], 1.0))
+        self.walls.append(Wall(self.interface, [ 1.0, -0.5, 0], [ 0,  1], 1.0))
         # +x side room 1
-        self.walls.append(Wall(self.interface, [ 1.5,  0.0 + y_offset, 0], [-1,  0], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.5,  1.0 + y_offset, 0], [-1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [ 1.5,  0.0, 0], [-1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [ 1.5,  1.0, 0], [-1,  0], 1.0))
         # -x side room 1
-        self.walls.append(Wall(self.interface, [-1.5,  0.0 + y_offset, 0], [ 1,  0], 1.0))
-        self.walls.append(Wall(self.interface, [-1.5,  1.0 + y_offset, 0], [ 1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [-1.5,  0.0, 0], [ 1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [-1.5,  1.0, 0], [ 1,  0], 1.0))
         # +y side room 1
-        self.walls.append(Wall(self.interface, [ 1.0,  1.5 + y_offset, 0], [ 0, -1], 1.0, is_thin=True))
-        self.walls.append(Wall(self.interface, [-1.0,  1.5 + y_offset, 0], [ 0, -1], 1.0, is_thin=True))
+        self.walls.append(Wall(self.interface, [ 1.0,  1.5, 0], [ 0, -1], 1.0, is_thin=True))
+        self.walls.append(Wall(self.interface, [-1.0,  1.5, 0], [ 0, -1], 1.0, is_thin=True))
 
         # -y side room 2
-        self.walls.append(Wall(self.interface, [ 1.0,  1.5 + y_offset, 0], [ 0,  1], 1.0, is_thin=True))
-        self.walls.append(Wall(self.interface, [-1.0,  1.5 + y_offset, 0], [ 0,  1], 1.0, is_thin=True))
+        self.walls.append(Wall(self.interface, [ 1.0,  1.5, 0], [ 0,  1], 1.0, is_thin=True))
+        self.walls.append(Wall(self.interface, [-1.0,  1.5, 0], [ 0,  1], 1.0, is_thin=True))
         # +x side room 2
-        self.walls.append(Wall(self.interface, [ 1.5,  2.0 + y_offset, 0], [-1,  0], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.5,  3.0 + y_offset, 0], [-1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [ 1.5,  2.0, 0], [-1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [ 1.5,  3.0, 0], [-1,  0], 1.0))
         # -x side room 2
-        self.walls.append(Wall(self.interface, [-1.5,  2.0 + y_offset, 0], [ 1,  0], 1.0))
-        self.walls.append(Wall(self.interface, [-1.5,  3.0 + y_offset, 0], [ 1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [-1.5,  2.0, 0], [ 1,  0], 1.0))
+        self.walls.append(Wall(self.interface, [-1.5,  3.0, 0], [ 1,  0], 1.0))
         # +y side room 2
-        self.walls.append(Wall(self.interface, [-1.0,  3.5 + y_offset, 0], [ 0, -1], 1.0))
-        self.walls.append(Wall(self.interface, [ 0.0,  3.5 + y_offset, 0], [ 0, -1], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.0,  3.5 + y_offset, 0], [ 0, -1], 1.0))
-
-
-class ObstaclesRoom(BaseTileRoom):
-    def __init__(self, interface, params):
-        defaults = dict(
-            single_floor_texture="floor_wood_2",
-        )
-        defaults.update(params)
-        super().__init__(interface, defaults)
-    
-    def generate_obstacles(self):
-        self.obstacles.append(ColoredBox(self.interface, [-0.5, 0.5, 0.0], 0.15, "dark_grey"))
-        self.obstacles.append(ColoredCylinder(self.interface, [0.7, 0.5, 0.0], 0.15, "grey"))
-        self.obstacles.append(ColoredBox(self.interface, [0.75, -0.75, 0.0], 0.1, "grey"))
-        self.obstacles.append(ColoredCylinder(self.interface, [-0.75, -0.75, 0.0], 0.1, "black"))
-
-    def generate_floors(self):
-        # starting room
-        tex = self.params["single_floor_texture"]
-        self.floors.append(FloorPatch(self.interface, [-1.0,-1.0, 0.0], tex, 1.0, neg_x_wall=True, neg_y_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 0.0,-1.0, 0.0], tex, 1.0,                  neg_y_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 1.0,-1.0, 0.0], tex, 1.0, pos_x_wall=True, neg_y_wall=True))
-        
-        self.floors.append(FloorPatch(self.interface, [-1.0, 0.0, 0.0], tex, 1.0, neg_x_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 0.0, 0.0, 0.0], tex, 1.0))
-        self.floors.append(FloorPatch(self.interface, [ 1.0, 0.0, 0.0], tex, 1.0, pos_x_wall=True))
-        
-        self.floors.append(FloorPatch(self.interface, [-1.0, 1.0, 0.0], tex, 1.0, neg_x_wall=True, pos_y_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 0.0, 1.0, 0.0], tex, 1.0,                  pos_y_wall=True))
-        self.floors.append(FloorPatch(self.interface, [ 1.0, 1.0, 0.0], tex, 1.0, pos_x_wall=True, pos_y_wall=True))
-
-    def generate_walls(self):
-        # -x side
-        self.walls.append(Wall(self.interface, [-1.5,-1.0, 0], [ 1, 0], 1.0))
-        self.walls.append(Wall(self.interface, [-1.5, 0.0, 0], [ 1, 0], 1.0))
-        self.walls.append(Wall(self.interface, [-1.5, 1.0, 0], [ 1, 0], 1.0))
-
-        # +x side
-        self.walls.append(Wall(self.interface, [ 1.5,-1.0, 0], [-1, 0], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.5, 0.0, 0], [-1, 0], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.5, 1.0, 0], [-1, 0], 1.0))
-
-        # -y side
-        self.walls.append(Wall(self.interface, [-1.0,-1.5, 0], [ 0, 1], 1.0))
-        self.walls.append(Wall(self.interface, [ 0.0,-1.5, 0], [ 0, 1], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.0,-1.5, 0], [ 0, 1], 1.0))
-
-        # +y side
-        self.walls.append(Wall(self.interface, [-1.0, 1.5, 0], [ 0,-1], 1.0))
-        self.walls.append(Wall(self.interface, [ 0.0, 1.5, 0], [ 0,-1], 1.0))
-        self.walls.append(Wall(self.interface, [ 1.0, 1.5, 0], [ 0,-1], 1.0))
-
-    def random_robot_pos_yaw(self):
-        for _ in range(1000):
-            x = np.random.uniform(-0.75, 0.75)
-            y = np.random.uniform(-0.75, 0.75)
-            yaw = np.random.uniform(0, np.pi * 2.0)
-            if not self.is_point_in_obstacles(x, y, wiggle=0.15):
-                break
-        return np.array([x, y]), yaw
+        self.walls.append(Wall(self.interface, [-1.0,  3.5, 0], [ 0, -1], 1.0))
+        self.walls.append(Wall(self.interface, [ 0.0,  3.5, 0], [ 0, -1], 1.0))
+        self.walls.append(Wall(self.interface, [ 1.0,  3.5, 0], [ 0, -1], 1.0))
 
 
 class DoubleRoom(BaseTileRoom):

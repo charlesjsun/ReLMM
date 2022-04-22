@@ -33,6 +33,7 @@ class Viewer:
 
     def get_image(self, width, height, **kwargs):
         render_coefficient = 4
+        # render_coefficient = 1
 
         _, _, unscaled_image, _, _ = self.p.getCameraImage(width * render_coefficient, height * render_coefficient, 
                                                   self.view_matrix, self.proj_matrix, **kwargs)
@@ -44,6 +45,16 @@ class Viewer:
 
 
 class PybulletInterface:
+
+    # Legacy constants for reference only
+        # START_JOINTS = np.array([0., -0.6, 1.3, 0.5, 1.6])
+        # # PREGRASP_POS = np.array((0.4568896949291229, -0.00021789505262859166, 0.3259587585926056))
+        # PREGRASP_POS = np.array((0.5, 0, 0.3))
+        # DOWN_QUAT = np.array((0.00011637622083071619, 0.6645175218582153, 0.00046503773774020374, 0.7472725510597229))
+        # BLOCK_POS = np.array([.45, 0., .02])
+        # GRIPPER_REF_POS = np.array([.45, 0., .0])
+        # CAMERA_LOOK_POS = np.array([0.5, 0., .2])
+        # # BLOCK_POS = np.array([0.5, 0, 0.2])
 
     # From the view of the robot pointing forward: 
     ARM_JOINTS = [13, # arm base rotates left (+) and right (-), in radians 
@@ -97,6 +108,9 @@ class PybulletInterface:
         else:
             self.p = bullet_client.BulletClient()
         
+#         default_time_step = 1./240.
+#         slow_down = 10
+#         self.p.setPhysicsEngineParameter(fixedTimeStep=default_time_step*slow_down, numSubSteps=slow_down)
         self.p.setAdditionalSearchPath(pybullet_data.getDataPath())
         self.p.setGravity(0, 0, -9.8)
         self.default_ori = self.p.getQuaternionFromEuler([0,0,0])
@@ -108,6 +122,7 @@ class PybulletInterface:
         self.plane_id = -1
         if self.params["load_plane"]:
             self.load_floor("plane_transparent.urdf")
+        # self.plane_id = self.p.loadURDF("plane100.urdf", useMaximalCoordinates=True)
 
         # Load robot
         self.robot_urdf = URDF[self.params["urdf_name"]]
@@ -133,6 +148,13 @@ class PybulletInterface:
             self.aux_camera = Viewer(self.p, self.axu_camera_pos, self.params["aux_camera_look_pos"], 
                                     fov=self.params["aux_camera_fov"],
                                     near_pos=0.05, far_pos=7.0)
+
+        # Move arm to initial position
+        # self.move_arm_to_start(steps=180, max_velocity=8.0)
+        # self.open_gripper()
+
+        # Save state
+        # self.save_state()
 
         self.total_sim_steps = 0
 
@@ -236,6 +258,21 @@ class PybulletInterface:
     def remove_object(self, object_id):
         self.p.removeBody(object_id)
 
+    # def to_local_pos(self, pos, ori=None):
+    #     if ori is None:
+    #         ori = self.default_ori
+    #     base_pos, base_ori = self.p.getBasePositionAndOrientation(self.robot)
+    #     base_pos, base_ori = self.p.invertTransform(base_pos, base_ori)
+    #     pos, ori = self.p.multiplyTransforms(base_pos, base_ori, pos, ori)
+    #     return pos
+
+    # def to_global_pos(self, pos, ori=None):
+    #     if ori is None:
+    #         ori = self.default_ori
+    #     base_pos, base_ori = self.p.getBasePositionAndOrientation(self.robot)
+    #     pos, ori = self.p.multiplyTransforms(base_pos, base_ori, pos, ori)
+    #     return pos
+
     # ----- END OBJECTS METHOD -----
 
 
@@ -284,6 +321,27 @@ class PybulletInterface:
     
     def move_base(self, left, right):
         """ Move the base by some amount. """
+        # self.set_wheels_velocity(left * 0.2, right * 0.2)
+        # self.do_steps(10)
+        # self.set_wheels_velocity(left * 0.6, right * 0.6)
+        # self.do_steps(20)
+        # self.set_wheels_velocity(left, right)
+        # self.do_steps(30)
+        # self.set_wheels_velocity(left * 0.5, right * 0.5)
+        # self.do_steps(30)
+        # self.set_wheels_velocity(0, 0)
+        # self.do_steps(30)
+        # self.set_wheels_velocity(left, right)
+        # for r in (0.8, 1.0, 0.9, 0.7, 0.4, 0.2, 0.0, 0.0):
+        #     self.p.setJointMotorControl2(self.robot, self.LEFT_WHEEL, self.p.VELOCITY_CONTROL, targetVelocity=left * r, force=1e4)
+        #     self.p.setJointMotorControl2(self.robot, self.RIGHT_WHEEL, self.p.VELOCITY_CONTROL, targetVelocity=right * r, force=1e4)
+        #     self.do_steps(15)
+        # left_pos, _, _, _ = self.p.getJointState(self.robot, self.LEFT_WHEEL)
+        # right_pos, _, _, _ = self.p.getJointState(self.robot, self.RIGHT_WHEEL)
+        # self.p.setJointMotorControl2(self.robot, self.LEFT_WHEEL, self.p.POSITION_CONTROL, targetPosition=left_pos + left, maxVelocity=10)
+        # self.p.setJointMotorControl2(self.robot, self.RIGHT_WHEEL, self.p.POSITION_CONTROL, targetPosition=right_pos + right, maxVelocity=10)
+        # self.do_steps(120)
+
         self.p.setJointMotorControl2(self.robot, self.LEFT_WHEEL, self.p.VELOCITY_CONTROL, targetVelocity=left, force=1e4)
         self.p.setJointMotorControl2(self.robot, self.RIGHT_WHEEL, self.p.VELOCITY_CONTROL, targetVelocity=right, force=1e4)
         self.do_steps(55)
@@ -435,12 +493,16 @@ class PybulletInterface:
           action: 5-vector parameterizing XYZ offset, vertical angle offset
           (radians), and grasp (value between 0.001 (close) and 0.2 (open)."""
         curr_ee, curr_ori = self.get_ee_global()
+        #print("curr_ee", curr_ee)
         new_ee = np.array(curr_ee) + action[:3]
+        #print("new_ee", new_ee)
+        #jointStates = self.p.calculateInverseKinematics(self.robot, 16, new_ee, curr_ori, maxNumIterations=150)[2:6]
         jointStates = self.p.calculateInverseKinematics(self.robot, self.WRIST_JOINT, new_ee, curr_ori, maxNumIterations=150)[2:6]
         curr_wrist_angle, gripper_opening = self.get_wrist_state()
         new_wrist_angle = curr_wrist_angle + action[3]
         self.move_arm(jointStates, wrist_rot=new_wrist_angle, steps=70, max_velocity=max_velocity)
 
+        #self.p.setJointMotorControl2(self.robot, self.WRIST_JOINT, self.p.POSITION_CONTROL, new_wrist_angle, maxVelocity=max_velocity)
         self.p.setJointMotorControl2(self.robot, self.LEFT_GRIPPER, self.p.POSITION_CONTROL, -1*action[4])
         self.p.setJointMotorControl2(self.robot, self.RIGHT_GRIPPER, self.p.POSITION_CONTROL, action[4])
         self.do_steps(30)
@@ -513,7 +575,63 @@ class PybulletInterface:
         if self.grayscale:
             image = np.mean(image, axis=2).reshape((image_height, image_width, 1)).astype(np.uint8)
 
+        # import matplotlib.pyplot as plt
+        # self.fig, self.ax = plt.subplots(1,2)
+        # self.ax[0].imshow(image)
+        # self.ax[1].imshow(unscaled_image)
+        # self.fig.canvas.draw_idle()
+        # plt.show()
+
         if save_frame:
             self.add_frame(unscaled_image)
 
         return image
+
+
+        # ----- END MISC METHODS -----
+
+    def get_world_from_pixel(self, pixel):
+        
+        fov = self.params['camera_fov']/360*2*math.pi# 1.0472 #60 degrees
+        #focal_len
+        h =  self.params['image_size']
+        w = h
+        f = (h/2) / np.tan(fov/2) # Focal length
+        floor_z = 0.013
+        _, _, _, _,cam_pos, camera_ori = self.p.getLinkState(self.robot, self.CAMERA_LINK)
+        cam_pos = np.array(cam_pos).reshape([-1,1])
+        #pixel = np.array((0,0))
+        cam2robot_rot = np.linalg.inv(np.array(self.camera.view_matrix).reshape(4,4).T)[:3,:3]
+        #print(cam2robot_rot)
+        pixel3d = np.array(([(pixel[0]-w/2)/f, -1*(pixel[1]-h/2)/f, -1])).reshape((3,1)) # 1,3
+        #pixel3d = np.array(([1, -(pixel[0]-w/2)/f, -1*(pixel[1]-h/2)/f])).reshape((3,1)) # 1,3
+
+        #np.dot(pixel3d, cam2robot_rot) 
+
+        pixel3d_world = np.matmul(cam2robot_rot, pixel3d) + cam_pos # 1,3
+        ray_origin = cam_pos 
+        ray_direction = (pixel3d_world-cam_pos)
+        t_floor = (floor_z - ray_origin[2,0])/ray_direction[2,0]
+        world_pixel_pos = ray_origin+t_floor*ray_direction
+        base_pos, base_ori = self.p.getBasePositionAndOrientation(self.robot)
+        world_pixel_pos = world_pixel_pos.reshape(3)
+        #print("base pos", base_pos, "cam pos", cam_pos)
+        inv_robot_pos, inv_robot_ori = self.p.invertTransform(base_pos, base_ori)
+        robot_pixel_pos, ori = self.p.multiplyTransforms(inv_robot_pos, inv_robot_ori , tuple(world_pixel_pos.flatten()), self.params["down_quat"])
+        return world_pixel_pos
+
+    def get_pixel_from_world(self, pos):
+        #print("pos",pos)
+        _, _, _, _,cam_pos, camera_ori = self.p.getLinkState(self.robot, self.CAMERA_LINK)
+        cam_pos = np.array(cam_pos).reshape([-1,1])
+        cam2robot_rot = np.linalg.inv(np.array(self.camera.view_matrix).reshape(4,4).T)[:3,:3]
+        pixel = np.matmul(cam2robot_rot.T, (pos-cam_pos))
+        #print("matmul",pixel)
+        pixel = -1*pixel[:2]/pixel[2] #maybe negative
+        #print("devide z", pixel)
+        pixel = np.array([pixel[0]*f+w/2, -1*pixel[1]*f+h/2]) # Maybe some negative
+        #print("f", pixel[0]*f,-1*pixel[1]*f )
+        #print("final",pixel)
+        #pixel3d = np.array(([(pixel[0]-w/2)/f, -1*(pixel[1]-h/2)/f, -1])).reshape((3,1)) # 1,3
+
+        return pixel

@@ -70,13 +70,166 @@ GENERAL_ENVIRONMENT_SPECS = (
         'entry_point': (f'{CUSTOM_GYM_ENVIRONMENTS_PATH}'
                         '.multi_goal:MultiGoalEnv')
     },
+    # {
+    #     'id': 'Locobot-Grasping-v0',
+    #     'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+    #                     '.grasping_envs:LocobotGraspingEnv')
+    # },
+    # {
+    #     'id': 'Locobot-ImageGrasping-v0',
+    #     'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+    #                     '.grasping_envs:ImageLocobotGraspingEnv')
+    # },
+    # {
+    #     'id': 'Locobot-ImageMultiGrasping-v0',
+    #     'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+    #                     '.grasping_envs:ImageLocobotMultiGraspingEnv')
+    # },
+    # {
+    #     'id': 'Locobot-ImageSingleGrasping-v0',
+    #     'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+    #                     '.grasping_envs:ImageLocobotSingleGraspingEnv')
+    # },
+    
+    # Pure Navigation Stuff
+    {
+        'id': 'Locobot-ImageNavigation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.nav_envs:ImageLocobotNavigationEnv')
+    },
+    {
+        'id': 'Locobot-MixedNavigation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.nav_envs:MixedLocobotNavigationEnv')
+    },
+    {
+        'id': 'Locobot-MixedNavigationReach-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.nav_envs:MixedLocobotNavigationReachEnv')
+    },
+    {
+        'id': 'Locobot-ImageNavigationResetFree-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.nav_envs:ImageLocobotNavigationEnv')
+    },
+    {
+        'id': 'Locobot-MixedNavigationResetFree-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.nav_envs:MixedLocobotNavigationEnv')
+    },
 
-    # Locobot environments
+    # navigation vacuum
+    {
+        'id': 'Locobot-NavigationVacuum-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationVacuumEnv')
+    },
+    {
+        'id': 'Locobot-NavigationVacuumResetFree-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationVacuumEnv')
+    },
+
+    # navigation vacuum perturbation
+    {
+        'id': 'Locobot-NavigationVacuumRandomPerturbation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationVacuumRandomPerturbationEnv')
+    },
+    {
+        'id': 'Locobot-NavigationVacuumRNDPerturbation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationVacuumRNDPerturbationEnv')
+    },
+
+    # navigation vacuum double perturbation
+    {
+        'id': 'Locobot-NavigationVacuumDoublePerturbation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationVacuumDoublePerturbationEnv')
+    },
+    
+    # navigation dqn grasping double perturbation
+    {
+        'id': 'Locobot-NavigationDQNGraspingDoublePerturbation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationDQNGraspingDoublePerturbationEnv')
+    },
+    {
+        'id': 'Locobot-NavigationDQNGraspingRNDDoublePerturbation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationDQNGraspingRNDDoublePerturbationEnv')
+    },
+    
+
     {
         'id': 'Locobot-NavigationGraspingDualPerturbation-v0',
         'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
                         ':LocobotNavigationGraspingDualPerturbationEnv')
     },
+    {
+        'id': 'Locobot-NavigationGraspingDualPerturbationFrameStack-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationGraspingDualPerturbationFrameStackEnv')
+    },
+    {
+        'id': 'Locobot-NavigationGraspingDualPerturbationOracle-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationGraspingDualPerturbationOracleEnv')
+    },
+
+    
+
+    # nav grasp
+    {
+        'id': 'Locobot-NavigationDQNGrasping-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationDQNGraspingEnv')
+    },
+
+    # nav grasp perturbation
+    {
+        'id': 'Locobot-NavigationDQNGraspingRNDPerturbation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotNavigationDQNGraspingRNDPerturbationEnv')
+    },
+
+    # grasping only
+    {
+        'id': 'Locobot-DiscreteGrasping-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotDiscreteGraspingEnv')
+    },
+    {
+        'id': 'Locobot-ContinuousMultistepGrasping-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        ':LocobotContinuousMultistepGraspingEnv')
+    },
+
+    # Real
+    {        
+        'id': 'Locobot-RealNavigation-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.locobot_envs:RealLocobotNavigationEnv')
+    },
+    {
+        'id': 'Locobot-RealGrasping-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.locobot_envs:RealLocobotGraspingEnv')
+    },
+    {
+        'id': 'Locobot-RealOdomNav-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.real_envs:RealLocobotOdomNavEnv')
+    },
+    {
+
+        'id': 'Locobot-RealARTagNav-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.real_envs:RealLocobotARTagEnv')
+    },
+
+    # REAL dual pert
     {
         'id': 'Locobot-RealNavigationGraspingDualPerturbation-v0',
         'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
@@ -105,6 +258,17 @@ GENERAL_ENVIRONMENT_SPECS = (
                         '.tests:PointGridExploration')
     },
 
+    # Real robot
+    {
+        'id': 'Locobot-RealNavigationOdom-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.real_envs:RealLocobotOdomNavEnv')
+    },
+    {
+        'id': 'Locobot-RealNavigationRND-v0',
+        'entry_point': (f'{LOCOBOT_ENVIRONMENTS_PATH}'
+                        '.real_envs:RealLocobotRNDNavEnv')
+    },
 )
 
 MUJOCO_ENVIRONMENTS = tuple(

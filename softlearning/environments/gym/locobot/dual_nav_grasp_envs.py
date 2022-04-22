@@ -17,6 +17,7 @@ from softlearning.utils.dict import deep_update
 
 
 IMAGE_SIZE = 100
+# IMAGE_SIZE = 64
 
 
 class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
@@ -47,6 +48,8 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
 
         defaults["action_space"] = spaces.Box(-1.0, 1.0, shape=(2,))
         defaults["observation_space"] = spaces.Dict({
+            # "current_velocity": spaces.Box(low=-1.0, high=1.0, shape=(2,)),
+            # "target_velocity": spaces.Box(low=-1.0, high=1.0, shape=(2,)),
             "pixels": spaces.Box(low=0, high=255, dtype=np.uint8, shape=(IMAGE_SIZE, IMAGE_SIZE, 3))
         })
 
@@ -57,6 +60,11 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
         self.use_auto_grasp = self.params["use_auto_grasp"]
         self.use_shared_data = self.params["use_shared_data"]
         self.add_uncertainty_bonus = self.params["add_uncertainty_bonus"]
+
+        # self.action_space = DiscreteBox(
+        #     low=-1.0, high=1.0, 
+        #     dimensions=OrderedDict((("move", 2), ("grasp", 0)))
+        # )
 
         self.do_single_grasp = self.params["do_single_grasp"]
         self.has_first_reset = False
@@ -74,6 +82,8 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
             is_training=self.is_training,
             infos_prefix="grasp_perturbation-",
             use_shared_data=self.use_shared_data,
+            # buffer_size=128, 
+            # min_samples_before_train=25, batch_size=4,
             **self.grasp_perturbation_params
         )
         self.nav_perturbation_name = self.params["nav_perturbation"]
@@ -84,6 +94,8 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
             is_training=self.is_training,
             infos_prefix="nav_perturbation-",
             use_shared_data=self.use_shared_data,
+            # buffer_size=128, 
+            # min_samples_before_train=25, batch_size=4,
             **self.nav_perturbation_params
         )
 
@@ -93,6 +105,8 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
             self.grasp_algorithm_name,
             env=self, 
             is_training=self.is_training,
+            # buffer_size=4,
+            # min_samples_before_train=10, batch_size=2
             **self.grasp_algorithm_params
         )
 
@@ -312,26 +326,31 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
         return obs
 
     def do_move(self, action):
+        # forward = action[0] * 10.0 + 5.0 # -10 to 15
+        # offset = action[1] * 0.2
+        # if action[0] != "move":
+        #     return
+        # action = action[1]
+
+        # forward_min = -10.0
         forward_min = 0.0
         forward_max = 15.0
 
         forward_mean = (forward_max + forward_min) * 0.5
         forward_scale = (forward_max - forward_min) * 0.5
 
+        # left = (action[0] + action[1] * 0.5) * forward_scale + forward_mean
+        # right = (action[0] - action[1] * 0.5) * forward_scale + forward_mean
         left = (action[0] + action[1]) * forward_scale + forward_mean
         right = (action[0] - action[1]) * forward_scale + forward_mean
 
-        self.interface.p.setJointMotorControl2(self.interface.robot, self.interface.LEFT_WHEEL, self.interface.p.VELOCITY_CONTROL, targetVelocity=left, force=1e4)
-        self.interface.p.setJointMotorControl2(self.interface.robot, self.interface.RIGHT_WHEEL, self.interface.p.VELOCITY_CONTROL, targetVelocity=right, force=1e4)
-        for _ in range(55 // 5):
-            self.interface.do_steps(5)
-            self.unstuck_objects(detect_dist=0.203, factor=0.205)
-        self.interface.p.setJointMotorControl2(self.interface.robot, self.interface.LEFT_WHEEL, self.interface.p.VELOCITY_CONTROL, targetVelocity=0, force=1e4)
-        self.interface.p.setJointMotorControl2(self.interface.robot, self.interface.RIGHT_WHEEL, self.interface.p.VELOCITY_CONTROL, targetVelocity=0, force=1e4)
-        for _ in range(65 // 5):
-            self.interface.do_steps(5)
-            self.unstuck_objects(detect_dist=0.203, factor=0.205)
+        # left = (action[0] + action[1] * 0.25) * 15.0
+        # right = (action[0] - action[1] * 0.25) * 15.0
 
+        # self.interface.move_base(value[0] * self.max_velocity, value[1] * self.max_velocity)
+        self.interface.move_base(left, right)
+
+        self.unstuck_objects()
         self.unstuck_robot()
 
         self.previous_action = np.array(action)
@@ -342,8 +361,10 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
         else:
             should_grasp = self.grasp_algorithm.should_grasp_block_learned()
         
-        infos["attempted_grasp"] = 1 if should_grasp else 0
+        # should_grasp = (action[0] == "grasp")
 
+        infos["attempted_grasp"] = 1 if should_grasp else 0
+            
         if should_grasp:
             return self.grasp_algorithm.do_grasp_action(return_grasped_object=return_grasped_object)
         else:
@@ -352,19 +373,18 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
             else:
                 return 0
 
-    def unstuck_objects(self, detect_dist=0.215, factor=0.23):
+    def unstuck_objects(self):
         for i in range(self.room.num_objects):
             object_pos, _ = self.interface.get_object(self.room.objects_id[i], relative=True)
             sq_dist = object_pos[0] ** 2 + object_pos[1] ** 2
-            if sq_dist <= detect_dist ** 2:
-                scale_factor = factor / np.sqrt(sq_dist)
+            if sq_dist <= 0.215 ** 2:
+                scale_factor = 0.23 / np.sqrt(sq_dist)
                 new_object_pos = np.array(object_pos) * np.array([scale_factor, scale_factor, 1])
                 new_object_pos[2] = 0.015
                 self.interface.move_object(self.room.objects_id[i], new_object_pos, relative=True)
 
             if sq_dist >= 0.3 ** 2:
                 self.room.force_object_in_bound_if_not(i)
-                self.room.force_object_out_obstacle_if_not(i)
 
     def unstuck_robot(self):
         turn_dir = self.room.get_turn_direction_if_should_turn()
@@ -433,6 +453,13 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
                             self.do_move(action)
                     else:
                         action = [float(cmd[0]), float(cmd[1])]
+                        
+                    # if cmd[0] == "q":
+                    #     raise KeyboardInterrupt
+                    # elif cmd[0] == "g":
+                    #     action = ("grasp", None)
+                    # else:
+                    #     action = ("move", [float(cmd[0]), float(cmd[1])])
                     break
                 except KeyboardInterrupt as e:
                     raise e
@@ -444,6 +471,14 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
         # init return values
         reward = 0.0
         infos = {}
+
+        # self.grasp_perturbation_env.set_infos_defaults(infos)
+        # self.nav_perturbation_env.set_infos_defaults(infos)
+        
+        # self.grasp_algorithm.set_infos_defaults(infos)
+
+        # if self.do_grasp_eval:
+        #     self.grasp_eval.set_infos_defaults(infos)
 
         # update initial block pos
         if len(self.trajectories) == 0:
@@ -476,6 +511,7 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
             self.do_nav_perturbation(infos)
             if self.do_single_grasp:
                 done = True
+                # infos["discard_obs"] = True
         elif self.perturbation_interval > 0 and self.num_steps % self.perturbation_interval == 0:
             self.finalize_nav_trajectory()
             self.do_grasp_perturbation(infos, None)
@@ -564,3 +600,130 @@ class LocobotNavigationGraspingDualPerturbationEnv(RoomEnv):
         self.grasp_algorithm.load(checkpoint_dir, **kwargs)
 
 
+class LocobotNavigationGraspingDualPerturbationFrameStackEnv(LocobotNavigationGraspingDualPerturbationEnv):
+    """ Frame stack. """
+    def __init__(self, **params):
+        defaults = dict(
+            num_stack=4,
+        )
+        super().__init__(**deep_update(defaults, params))
+
+        self.num_stack = self.params["num_stack"]
+        self.observation_space = spaces.Dict({
+            "pixels": FrameStack(frame_shape=(IMAGE_SIZE, IMAGE_SIZE, 3), num_stack=self.num_stack)
+        })
+
+        self.obs_queue = FrameStack.Queue(self.num_stack)
+
+    def reset(self):
+        super().reset()
+        if self.do_single_grasp and self.has_first_reset:
+            return
+        self.obs_queue.reset()
+
+        # self.fig, self.ax = plt.subplots(2,2)
+        # self.fig.show()
+        # plt.show(block=False)
+
+    def get_observation(self):
+        obs = OrderedDict()
+        frame = self.render(size=self.image_size, save_frame=bool(self.trajectory_log_path))
+        self.obs_queue.append(frame)
+        obs["pixels"] = self.obs_queue.stack()
+
+        # import matplotlib.pyplot as plt
+        # self.fig, self.ax = plt.subplots(2,2)
+        # self.ax[0, 0].imshow(obs["pixels"].frames[0])
+        # self.ax[0, 1].imshow(obs["pixels"].frames[1])
+        # self.ax[1, 0].imshow(obs["pixels"].frames[2])
+        # self.ax[1, 1].imshow(obs["pixels"].frames[3])
+        # self.fig.canvas.draw_idle()
+        # plt.show()
+
+        return obs
+
+    def step(self, action):
+        next_obs, reward, terminal, info = super().step(action)
+        
+        # if info.get("discard_obs", False):
+        #     self.obs_queue.reset()
+
+        return next_obs, reward, terminal, info
+
+
+class LocobotNavigationGraspingDualPerturbationOracleEnv(LocobotNavigationGraspingDualPerturbationEnv):
+    """ Fully observed oracle state observations. """
+    def __init__(self, **params):
+        defaults = dict(
+            num_nearest=1,
+            do_sort=True,
+            do_cull=False,
+            is_relative=False,
+        )
+        super().__init__(**deep_update(defaults, params))
+
+        self.num_nearest = self.params["num_nearest"]
+        self.is_relative = self.params["is_relative"]
+        if self.is_relative:
+            self.observation_space = spaces.Dict({
+                "objects_pos": spaces.Box(low=-1.0, high=1.0, shape=(2 * self.num_nearest,))
+            })
+        else:
+            self.observation_space = spaces.Dict({
+                "robot_pos": spaces.Box(low=-1.0, high=1.0, shape=(2,)),
+                "robot_forward": spaces.Box(low=-1.0, high=1.0, shape=(2,)),
+                "objects_pos": spaces.Box(low=-1.0, high=1.0, shape=(2 * self.num_nearest,))
+            })
+        self.do_sort = self.params["do_sort"]
+        self.do_cull = self.params["do_cull"]
+
+    def get_observation(self, include_pixels=False):
+        obs = OrderedDict()
+
+        if not self.is_relative:
+            robot_x, robot_y, robot_yaw = self.interface.get_base_pos_and_yaw()
+            obs["robot_pos"] = np.array([robot_x, robot_y])
+            obs["robot_forward"] = np.array([np.cos(robot_yaw), np.sin(robot_yaw)])
+
+        
+        # in_bound_objects_pos_and_dist_to_robot = get_objects_pos_dist(lambda i: not self.room.is_object_in_discard(i))
+        # in_bound_objects_pos_and_dist_to_robot = self.get_objects_pos_dist()
+        objects_pos_dist_view = self.get_objects_pos_dist_in_view(relative=self.is_relative)
+        if self.do_sort:
+            objects_pos_dist_view.sort(key=lambda pdv: pdv[1])
+
+        if self.do_cull:
+            objects_pos_dist_view = list(filter(lambda pdv: pdv[2], objects_pos_dist_view))
+            for _ in range(len(objects_pos_dist_view), self.num_nearest):
+                objects_pos_dist_view.append((self.room.object_discard_pos[:2], 1000000, False))
+
+        # for _ in range(len(in_bound_objects_pos), self.room.num_objects):
+        #     if len(in_bound_objects_pos) == 0:
+        #         object_pos, _ = self.interface.get_object(self.room.objects_id[0])
+        #         in_bound_objects_pos.append(object_pos[:2])
+        #     in_bound_objects_pos.append(in_bound_objects_pos[-1])
+
+        in_bound_objects_pos = [p for p, d, v in objects_pos_dist_view[:self.num_nearest]]
+
+        # out_bound_objects_new_pos = []
+        # for _ in range(len(in_bound_objects_pos), self.room.num_objects):
+        #     out_bound_objects_new_pos.append(in_bound_objects_pos[0])
+        # in_bound_objects_pos = out_bound_objects_new_pos + in_bound_objects_pos
+
+        obs["objects_pos"] = np.array(in_bound_objects_pos).flatten()
+        # obs["objects_pos"] = np.array(in_bound_objects_pos[0])
+
+        dprint("obs:", obs)
+
+        return obs
+
+    def step(self, action):
+        if self.trajectory_log_path:
+            self.render(size=self.image_size, save_frame=True)
+
+        next_obs, reward, done, infos = super().step(action)
+
+        return next_obs, reward, done, infos
+
+    def observation(self, observation):
+        return observation

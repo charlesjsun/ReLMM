@@ -13,12 +13,12 @@ DEFAULT_KEY = "__DEFAULT_KEY__"
 M = 512
 
 DEBUG_EP_LEN_LOCAL = False
-DEBUG_BUFFER_SIZE_LOCAL = True
+DEBUG_BUFFER_SIZE_LOCAL = False
 
-REAL_EXP = False
+REAL_EXP = True
 DEBUG_SAVE = False
 DEBUG_LOAD = False
-SIM_REAL_EXP = True
+SIM_REAL_EXP = False
 
 ALGORITHM_PARAMS_BASE = {
     'config': {
@@ -31,9 +31,9 @@ ALGORITHM_PARAMS_BASE = {
             #       ['sampler_params']
             #       ['config']
             #       ['max_path_length'])
-            5 if DEBUG_EP_LEN_LOCAL else (
             0 if DEBUG_LOAD else (
-            500 if REAL_EXP or SIM_REAL_EXP else 
+            500 if REAL_EXP or SIM_REAL_EXP else (
+            10 if DEBUG_EP_LEN_LOCAL else 
             1000))
         )),
     }
@@ -127,7 +127,7 @@ TOTAL_STEPS_PER_UNIVERSE_DOMAIN_TASK = {
     'gym': {
         DEFAULT_KEY: int(1e4),
         'Locobot': {
-            DEFAULT_KEY: 5000 if DEBUG_SAVE else (40000 if SIM_REAL_EXP else int(1e5)),
+            DEFAULT_KEY: 5000 if DEBUG_SAVE else int(1e5),
         },
     },
 }
@@ -138,7 +138,7 @@ MAX_PATH_LENGTH_PER_UNIVERSE_DOMAIN_TASK = {
     'gym': {
         DEFAULT_KEY: 1000,
         'Locobot': {
-            DEFAULT_KEY: 5 if DEBUG_EP_LEN_LOCAL else (250 if REAL_EXP or SIM_REAL_EXP else 500),
+            DEFAULT_KEY: 250 if REAL_EXP or SIM_REAL_EXP else (500 if not DEBUG_EP_LEN_LOCAL else 10),
             # DEFAULT_KEY: 10,
             'RealNavigationGraspingDualPerturbation-v0': 250,
         },
@@ -150,7 +150,7 @@ EPOCH_LENGTH_PER_UNIVERSE_DOMAIN_TASK = {
     'gym': {
         DEFAULT_KEY: 1000,
         'Locobot': {
-            DEFAULT_KEY: 5 if DEBUG_EP_LEN_LOCAL else (250 if REAL_EXP or SIM_REAL_EXP else 1000),
+            DEFAULT_KEY: 250 if REAL_EXP or SIM_REAL_EXP else (1000 if not DEBUG_EP_LEN_LOCAL else 10),
             # DEFAULT_KEY: 10,
             'RealNavigationGraspingDualPerturbation-v0': 250,
         },
@@ -169,7 +169,7 @@ ENVIRONMENT_PARAMS_PER_UNIVERSE_DOMAIN_TASK = {
                     'num_objects': 20, 
                 },
                 'is_training': True,
-                'max_ep_len': 5 if DEBUG_EP_LEN_LOCAL else (250 if REAL_EXP or SIM_REAL_EXP else 500),
+                'max_ep_len': 250 if REAL_EXP or SIM_REAL_EXP else (500 if not DEBUG_EP_LEN_LOCAL else 10),
                 # 'max_ep_len': 10,
             },
 
@@ -210,7 +210,7 @@ EXTRA_EVALUATION_ENVIRONMENT_PARAMS_PER_UNIVERSE_DOMAIN_TASK = {
         'Locobot': {
             'NavigationGraspingDualPerturbation-v0': {
                 'is_training': False,
-                'no_respawn_eval_len': 0 if DEBUG_SAVE else (5 if DEBUG_EP_LEN_LOCAL else 200), 
+                'no_respawn_eval_len': 0 if DEBUG_SAVE else 200, 
             },
             'NavigationGraspingDualPerturbationFrameStack-v0': {
                 'is_training': False,

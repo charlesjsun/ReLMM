@@ -79,7 +79,7 @@ def add_command_line_args_to_variant_spec(variant_spec, command_line_args):
     variant_spec['run_params']['result_name'] = command_line_args.result_name or command_line_args.exp_name
 
     variant_spec['run_params']['restore_path'] = command_line_args.restore_path
-    variant_spec['run_params']['replay_pool_path'] = command_line_args.replay_pool_path
+    variant_spec['run_params']['replay_pool_paths'] = command_line_args.replay_pool_paths
 
     return variant_spec
 

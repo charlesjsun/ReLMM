@@ -14,6 +14,8 @@ except ModuleNotFoundError as e:
     print("Warning: dm_control package not found. Run"
           " `pip install git+https://github.com/deepmind/dm_control.git`"
           " to use dm_control environments.")
+except Exception as e:
+    print(e, "raise when trying to import dm control")
 
 try:
     # from .adapters.robosuite_adapter import RobosuiteAdapter
