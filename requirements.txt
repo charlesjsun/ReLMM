@@ -49,13 +49,10 @@ lxml==4.4.2
 lz4==3.0.2
 Markdown==3.1.1
 matplotlib==3.1.2
-mkl-fft==1.1.0
-mkl-random==1.1.1
 mkl-service==2.3.0
 monotonic==1.5
 more-itertools==8.1.0
 moviepy==1.0.3
-mujoco-py==2.0.2.9
 networkx==2.4
 numpy==1.17.5
 oauthlib==3.1.0
@@ -93,7 +90,6 @@ ray[tune]==0.8.4
 redis==3.3.11
 requests==2.22.0
 requests-oauthlib==1.3.0
-robosuite==0.1.0
 rsa==4.0
 s3transfer==0.3.1
 scikit-learn==0.22.1
@@ -106,7 +102,7 @@ six==1.13.0
 smmap2==2.0.5
 tabulate==0.8.6
 tensorboard==2.2.0
-tensorflow==2.2.0rc3
+tensorflow==2.2.0
 tensorflow-addons==0.9.1
 tensorflow-estimator==2.2.0
 tensorflow-probability==0.10.0rc0
@@ -118,3 +114,4 @@ Werkzeug==0.16.0
 wheel==0.33.6
 wrapt==1.11.2
 zipp==1.0.0
+
