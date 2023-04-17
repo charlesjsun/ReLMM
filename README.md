@@ -19,7 +19,7 @@ export ROS_MASTER_URI=http://<locobot_address>:11311
 export TF_FORCE_GPU_ALLOW_GROWTH=true
 ```
 
-2. Start the robot stack on Locobot, including the [server.py](https://github.com/charlesjsun/locobot_interface/blob/master/scripts/server.py)) 
+2. Start the robot stack on Locobot, including the [server.py](https://github.com/Jendker/locobot_interface)
 
 3. Use the pretrained grasping model as described in the next section or pretrain the grasping model yourself:
 ```
